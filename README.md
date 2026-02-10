@@ -20,7 +20,7 @@ node server.js
 
 # 4. Open browser
 # http://localhost:8888
-# Default login: gira / gotowana7Gira
+# Default login: gira / gira
 ```
 
 ## Files

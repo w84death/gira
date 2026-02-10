@@ -9,7 +9,7 @@ const DATA_DIR = path.join(__dirname, "data");
 
 // Password protection
 const AUTH_USER = "gira";
-const AUTH_PASS = "SUPER-SECRET-PASSWORD";
+const AUTH_PASS = "gira";
 
 // Generate auth token
 function generateToken() {
