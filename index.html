@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow, nosnippet, noarchive">
+    <meta name="googlebot" content="noindex, nofollow, nosnippet, noarchive">
+    <title>Gira | Task Board</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #0a0a0a;
+            color: #ffffff;
+            line-height: 1.6;
+            font-size: 14px;
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+            background: rgba(10, 10, 10, 0.9);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid #1a1a1a;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: -1px;
+        }
+
+        .logo span {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .add-task-btn {
+            padding: 12px 24px;
+            background: #fff;
+            color: #0a0a0a;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .add-task-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(255, 255, 255, 0.1);
+        }
+
+        /* Board */
+        .board {
+            display: flex;
+            gap: 20px;
+            padding: 100px 40px 40px;
+            min-height: 100vh;
+            overflow-x: auto;
+        }
+
+        .column {
+            flex: 1;
+            min-width: 320px;
+            max-width: 400px;
+            background: #111;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            max-height: calc(100vh - 140px);
+        }
+
+        .column-header {
+            padding: 20px;
+            border-bottom: 1px solid #222;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .column-title {
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #888;
+        }
+
+        .column-count {
+            font-size: 12px;
+            color: #444;
+            background: #1a1a1a;
+            padding: 4px 10px;
+            border-radius: 12px;
+        }
+
+        .column-content {
+            flex: 1;
+            padding: 10px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .column-content.drag-over {
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        /* Tasks */
+        .task {
+            background: #1a1a1a;
+            border: 1px solid #222;
+            border-radius: 6px;
+            padding: 16px;
+            cursor: grab;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .task:hover {
+            border-color: #333;
+            transform: translateY(-2px);
+        }
+
+        .task.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+        }
+
+        .task-content {
+            font-size: 14px;
+            line-height: 1.6;
+            color: #ddd;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .task-actions {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            display: none;
+            gap: 4px;
+        }
+
+        .task:hover .task-actions {
+            display: flex;
+        }
+
+        .task-btn {
+            width: 24px;
+            height: 24px;
+            background: #222;
+            border: none;
+            border-radius: 4px;
+            color: #666;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .task-btn:hover {
+            background: #333;
+            color: #fff;
+        }
+
+        .task-btn.delete:hover {
+            background: #ff4444;
+            color: #fff;
+        }
+
+        .task-meta {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #222;
+            font-size: 11px;
+            color: #444;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: #111;
+            border: 1px solid #222;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            padding: 30px;
+            transform: translateY(20px);
+            transition: transform 0.3s;
+        }
+
+        .modal-overlay.active .modal {
+            transform: translateY(0);
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .modal textarea {
+            width: 100%;
+            min-height: 150px;
+            padding: 16px;
+            background: #1a1a1a;
+            border: 1px solid #222;
+            border-radius: 6px;
+            color: #fff;
+            font-family: inherit;
+            font-size: 14px;
+            resize: vertical;
+            margin-bottom: 20px;
+        }
+
+        .modal textarea:focus {
+            outline: none;
+            border-color: #333;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: #888;
+        }
+
+        .btn-secondary:hover {
+            color: #fff;
+        }
+
+        .btn-primary {
+            background: #fff;
+            color: #0a0a0a;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(255, 255, 255, 0.1);
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #444;
+            font-size: 13px;
+        }
+
+        /* Scrollbar */
+        .column-content::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .column-content::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .column-content::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 3px;
+        }
+
+        .column-content::-webkit-scrollbar-thumb:hover {
+            background: #444;
+        }
+
+        /* Drop indicator */
+        .drop-indicator {
+            height: 3px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 2px;
+            margin: 2px 0;
+            display: none;
+        }
+
+        .drop-indicator.active {
+            display: block;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            header {
+                padding: 15px 20px;
+            }
+
+            .board {
+                padding: 80px 20px 20px;
+            }
+
+            .column {
+                min-width: 280px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">🎯 <span>Gira</span></div>
+        <button class="add-task-btn" onclick="openAddModal()">+ Add Task</button>
+    </header>
+
+    <div class="board">
+        <div class="column" data-column="backlog">
+            <div class="column-header">
+                <span class="column-title">Backlog</span>
+                <span class="column-count" id="backlog-count">0</span>
+            </div>
+            <div class="column-content" id="backlog"></div>
+        </div>
+
+        <div class="column" data-column="in-progress">
+            <div class="column-header">
+                <span class="column-title">In Progress</span>
+                <span class="column-count" id="in-progress-count">0</span>
+            </div>
+            <div class="column-content" id="in-progress"></div>
+        </div>
+
+        <div class="column" data-column="done">
+            <div class="column-header">
+                <span class="column-title">Done</span>
+                <span class="column-count" id="done-count">0</span>
+            </div>
+            <div class="column-content" id="done"></div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Modal -->
+    <div class="modal-overlay" id="modal">
+        <div class="modal">
+            <h2 class="modal-title" id="modal-title">New Task</h2>
+            <textarea id="task-input" placeholder="What needs to be done?"></textarea>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-primary" id="modal-save" onclick="saveTask()">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let tasks = {};
+        let editingTask = null;
+        let draggedTask = null;
+
+        // Fetch all tasks
+        async function fetchTasks() {
+            const res = await fetch('/api/tasks');
+            tasks = await res.json();
+            renderBoard();
+        }
+
+        // Render the board
+        function renderBoard() {
+            ['backlog', 'in-progress', 'done'].forEach(column => {
+                const container = document.getElementById(column);
+                const count = document.getElementById(`${column}-count`);
+                
+                if (tasks[column].length === 0) {
+                    container.innerHTML = '<div class="empty-state">No tasks</div>';
+                } else {
+                    container.innerHTML = tasks[column].map(task => createTaskHTML(task, column)).join('');
+                }
+                
+                count.textContent = tasks[column].length;
+            });
+        }
+
+        // Create task HTML
+        function createTaskHTML(task, column) {
+            return `
+                <div class="task" draggable="true" data-id="${task.id}" data-column="${column}">
+                    <div class="task-actions">
+                        <button class="task-btn" onclick="editTask('${task.id}', '${column}')" title="Edit">✏️</button>
+                        <button class="task-btn delete" onclick="deleteTask('${task.id}')" title="Delete">🗑️</button>
+                    </div>
+                    <div class="task-content">${escapeHtml(task.content)}</div>
+                </div>
+            `;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Modal controls
+        function openAddModal() {
+            editingTask = null;
+            document.getElementById('modal-title').textContent = 'New Task';
+            document.getElementById('task-input').value = '';
+            document.getElementById('modal-save').textContent = 'Create';
+            document.getElementById('modal').classList.add('active');
+            document.getElementById('task-input').focus();
+        }
+
+        function editTask(id, column) {
+            const task = tasks[column].find(t => t.id === id);
+            if (task) {
+                editingTask = { id, column };
+                document.getElementById('modal-title').textContent = 'Edit Task';
+                document.getElementById('task-input').value = task.content;
+                document.getElementById('modal-save').textContent = 'Save';
+                document.getElementById('modal').classList.add('active');
+                document.getElementById('task-input').focus();
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.remove('active');
+            editingTask = null;
+        }
+
+        async function saveTask() {
+            const content = document.getElementById('task-input').value.trim();
+            if (!content) return;
+
+            if (editingTask) {
+                await fetch(`/api/tasks/${editingTask.id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content })
+                });
+            } else {
+                await fetch('/api/tasks', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content, column: 'backlog' })
+                });
+            }
+
+            closeModal();
+            fetchTasks();
+        }
+
+        async function deleteTask(id) {
+            if (confirm('Delete this task?')) {
+                await fetch(`/api/tasks/${id}`, { method: 'DELETE' });
+                fetchTasks();
+            }
+        }
+
+        // Drag and drop
+        document.addEventListener('dragstart', e => {
+            if (e.target.classList.contains('task')) {
+                draggedTask = {
+                    id: e.target.dataset.id,
+                    fromColumn: e.target.dataset.column
+                };
+                e.target.classList.add('dragging');
+            }
+        });
+
+        document.addEventListener('dragend', e => {
+            if (e.target.classList.contains('task')) {
+                e.target.classList.remove('dragging');
+                draggedTask = null;
+            }
+            document.querySelectorAll('.column-content').forEach(col => col.classList.remove('drag-over'));
+        });
+
+        document.addEventListener('dragover', e => {
+            e.preventDefault();
+            const column = e.target.closest('.column-content');
+            if (column) {
+                column.classList.add('drag-over');
+            }
+        });
+
+        document.addEventListener('dragleave', e => {
+            const column = e.target.closest('.column-content');
+            if (column && !column.contains(e.relatedTarget)) {
+                column.classList.remove('drag-over');
+            }
+        });
+
+        document.addEventListener('drop', async e => {
+            e.preventDefault();
+            const toColumn = e.target.closest('.column-content');
+            
+            if (draggedTask && toColumn) {
+                const toColumnName = toColumn.id;
+                
+                if (draggedTask.fromColumn !== toColumnName) {
+                    // Get position in new column
+                    const taskElements = Array.from(toColumn.querySelectorAll('.task:not(.dragging)'));
+                    const afterElement = taskElements.find(el => {
+                        const rect = el.getBoundingClientRect();
+                        return e.clientY < rect.top + rect.height / 2;
+                    });
+                    
+                    const position = afterElement 
+                        ? taskElements.indexOf(afterElement)
+                        : taskElements.length;
+                    
+                    // Calculate priority based on position (higher = more important)
+                    const totalTasks = tasks[toColumnName].length + 1;
+                    const priority = totalTasks - position;
+
+                    await fetch(`/api/tasks/${draggedTask.id}/move`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ toColumn: toColumnName, priority })
+                    });
+                    
+                    fetchTasks();
+                }
+            }
+            
+            document.querySelectorAll('.column-content').forEach(col => col.classList.remove('drag-over'));
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') closeModal();
+            if (e.key === 'Enter' && e.ctrlKey && document.getElementById('modal').classList.contains('active')) {
+                saveTask();
+            }
+            if (e.key === 'n' && !e.target.matches('textarea, input')) {
+                openAddModal();
+            }
+        });
+
+        // Close modal on outside click
+        document.getElementById('modal').addEventListener('click', e => {
+            if (e.target.id === 'modal') closeModal();
+        });
+
+        // Init
+        fetchTasks();
+        
+        // Auto-refresh every 30 seconds
+        setInterval(fetchTasks, 30000);
+    </script>
+</body>
+</html>
