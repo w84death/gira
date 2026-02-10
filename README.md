@@ -2,6 +2,10 @@
 
 A simple, self-hosted kanban board for managing tasks between humans and AI agents.
 
+![Gira screenshot](screenshot.png)
+
+
+
 ## Quick Start
 
 ```bash
